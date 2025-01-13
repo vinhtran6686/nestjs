@@ -19,4 +19,16 @@ export class UpdateUserDto extends PartialType(
   @IsOptional()
   @IsDate()
   lastLogin?: Date;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  resetPasswordToken?: string;
+
+  @IsOptional()
+  @IsDate()
+  resetPasswordExpires?: Date;
 }

@@ -14,19 +14,18 @@ export class UrlBuilderService {
     return `${baseUrl}/${apiPrefix}/${apiVersion}/${path}`.replace(/\/+/g, '/');
   }
 
-  buildAuthUrl(
-    path: string,
-    params?: Record<string, string>,
-    version?: string,
-  ): string {
-    const fullPath = `auth/${path}`;
-    let url = this.buildApiUrl(fullPath, version);
-
+  buildAuthUrl(path: string, params?: Record<string, string>): string {
+    const baseUrl = this.configService.get<string>('API_URL');
+    const url = `${baseUrl}/auth/${path}`;
     if (params) {
       const queryString = new URLSearchParams(params).toString();
-      url += `?${queryString}`;
+      return `${url}?${queryString}`;
     }
-
     return url;
+  }
+
+  buildClientUrl(path: string): string {
+    const clientUrl = this.configService.get<string>('CLIENT_URL');
+    return `${clientUrl}${path}`;
   }
 }

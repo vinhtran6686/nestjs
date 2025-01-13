@@ -17,4 +17,7 @@ export interface IUser {
   refreshToken?: string;
   lastLogin?: Date;
   role?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  isPasswordChanged?: boolean;
 }

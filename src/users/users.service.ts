@@ -24,6 +24,12 @@ export class UsersService {
     return hashedPassword;
   }
 
+  async hashPassword(password: string) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    return hashedPassword;
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     const hashedPassword = await this.generatePassword(createUserDto.password);
     const createdUser = new this.userModel({
@@ -34,7 +40,11 @@ export class UsersService {
   }
 
   findOneByUsername(username: string) {
-    return this.userModel.findOne({ email: username });
+    const user = this.userModel.findOne({ email: username });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user as unknown as IUser;
   }
 
   isValidPassword(password: string, hashedPassword: string) {
@@ -92,5 +102,9 @@ export class UsersService {
 
     await this.userModel.restore({ _id: id });
     return this.findOne(id) as unknown as IUser;
+  }
+
+  async findOneByResetToken(resetToken: string) {
+    return this.userModel.findOne({ resetPasswordToken: resetToken });
   }
 }

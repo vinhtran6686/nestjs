@@ -11,6 +11,9 @@ import { TokensDto } from './dto/token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AUTH_MESSAGES } from '@/constants/message/auth.constant';
 import { MailService } from './mail/mail.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -170,5 +173,100 @@ export class AuthService {
         AUTH_MESSAGES.ERRORS.INVALID_VERIFICATION_TOKEN,
       );
     }
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    console.log(userId);
+    console.log(changePasswordDto);
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isValidPassword = await this.usersService.isValidPassword(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isValidPassword) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const hashedPassword = await this.usersService.hashPassword(
+      changePasswordDto.newPassword,
+    );
+    await this.usersService.update(user._id.toString(), {
+      password: hashedPassword,
+    });
+
+    return { message: AUTH_MESSAGES.SUCCESS.PASSWORD_CHANGED_SUCCESSFULLY };
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.usersService.findOneByUsername(
+      forgotPasswordDto.email,
+    );
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const resetToken = await this.generateResetToken(user);
+
+    // Save hashed reset token to user
+    const hashedToken = await this.usersService.hashPassword(resetToken);
+    await this.usersService.update(user._id.toString(), {
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: new Date(Date.now() + 3600000), // 1 hour
+    });
+
+    // Send reset password email
+    await this.mailService.sendResetPasswordEmail(user.email, resetToken);
+
+    return { message: AUTH_MESSAGES.SUCCESS.RESET_PASSWORD_EMAIL_SENT };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    console.log('resetPasswordDto', resetPasswordDto);
+    if (resetPasswordDto.password !== resetPasswordDto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    // Find user by reset token
+    const user = await this.usersService.findOneByResetToken(
+      resetPasswordDto.token,
+    );
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Check if token is expired
+    if (user.resetPasswordExpires < new Date()) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    // Update password and clear reset token
+    const hashedPassword = await this.usersService.hashPassword(
+      resetPasswordDto.password,
+    );
+    await this.usersService.update(user._id.toString(), {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
+
+    return { message: AUTH_MESSAGES.SUCCESS.PASSWORD_RESET_SUCCESSFULLY };
+  }
+
+  private async generateResetToken(user: IUser): Promise<string> {
+    const payload = { email: user.email, type: 'reset' };
+    return this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_RESET_SECRET'),
+      expiresIn: '1h',
+    });
   }
 }

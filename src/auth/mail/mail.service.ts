@@ -44,4 +44,21 @@ export class MailService {
       throw new Error('Failed to send verification email');
     }
   }
+
+  async sendResetPasswordEmail(email: string, token: string) {
+    const resetUrl = this.urlBuilder.buildClientUrl('/reset-password');
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Reset Your Password',
+      template: 'reset-password',
+      context: {
+        resetUrl,
+        token,
+        supportEmail: this.configService.get('SUPPORT_EMAIL'),
+      },
+    });
+
+    this.logger.log(`Reset password email sent to ${email}`);
+  }
 }

@@ -7,6 +7,8 @@ export const AUTH_MESSAGES = {
     INVALID_REFRESH_TOKEN: 'Invalid refresh token',
     INVALID_VERIFICATION_TOKEN: 'Invalid or expired verification token',
     RATE_LIMIT_EXCEEDED: 'Too many requests, please try again later',
+    INVALID_RESET_TOKEN: 'Invalid or expired reset token',
+    PASSWORDS_DO_NOT_MATCH: 'Passwords do not match',
   },
   SUCCESS: {
     REGISTERED:
@@ -15,5 +17,9 @@ export const AUTH_MESSAGES = {
     LOGGED_OUT: 'Logged out successfully',
     EMAIL_VERIFIED: 'Email verified successfully',
     TOKEN_REFRESHED: 'Token refreshed successfully',
+    PASSWORD_CHANGED_SUCCESSFULLY: 'Password has been changed successfully',
+    RESET_PASSWORD_EMAIL_SENT:
+      'If an account exists with that email, we have sent password reset instructions',
+    PASSWORD_RESET_SUCCESSFULLY: 'Your password has been reset successfully',
   },
 } as const;
