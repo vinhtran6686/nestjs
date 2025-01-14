@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 
 export type UserDocument = HydratedDocument<User>;
@@ -57,6 +57,12 @@ export class User {
 
   @Prop()
   isPasswordChanged: boolean;
+
+  @Prop({ type: Object })
+  company: {
+    _id: mongoose.Schema.Types.ObjectId;
+    name: string;
+  };
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

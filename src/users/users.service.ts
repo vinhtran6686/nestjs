@@ -18,6 +18,8 @@ import {
 import { validatePaginationParams } from '@/shared/utils/validation.util';
 import { TimeoutError } from 'rxjs';
 import { PAGINATION_CONSTANTS } from '@/constants/pagination.constant';
+import { RegisterDto } from '@/auth/dto/register.dto';
+import { AUTH_MESSAGES } from '@/constants/message/auth.constant';
 @Injectable()
 export class UsersService {
   constructor(
@@ -44,6 +46,15 @@ export class UsersService {
       password: hashedPassword,
     });
     return createdUser.save();
+  }
+
+  async register(registerDto: RegisterDto) {
+    const hashedPassword = await this.generatePassword(registerDto.password);
+    const newUser = new this.userModel({
+      ...registerDto,
+      password: hashedPassword,
+    });
+    return newUser.save();
   }
 
   findOneByUsername(username: string) {

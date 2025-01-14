@@ -1,11 +1,25 @@
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
+  IsNotEmptyObject,
+  IsObject,
   IsOptional,
   IsString,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import mongoose from 'mongoose';
+
+class Company {
+  @IsNotEmpty()
+  _id: mongoose.Schema.Types.ObjectId;
+
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+}
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -38,4 +52,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   isEmailVerified?: boolean;
+
+  @IsNotEmptyObject()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Company)
+  company: Company;
 }

@@ -118,7 +118,7 @@ export class AuthService {
     );
 
     // Create user with verification token
-    const user = await this.usersService.create({
+    const user = await this.usersService.register({
       ...registerDto,
       verificationToken,
       isEmailVerified: false,
