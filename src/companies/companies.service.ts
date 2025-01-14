@@ -48,6 +48,7 @@ export class CompaniesService {
       }
 
       const { page, limit, sort, fields, search } = validation.validatedData!;
+      
 
       // Build query
       const query = this.companyModel.find({ isDeleted: false });

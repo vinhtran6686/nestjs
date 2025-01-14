@@ -11,6 +11,13 @@ import { User, UserModel } from './schemas/user.schema';
 import * as bcrypt from 'bcryptjs';
 import { isValidObjectId } from 'libs/utils';
 import { IUser } from './users.interface';
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '@/shared/interfaces/pagination.interface';
+import { validatePaginationParams } from '@/shared/utils/validation.util';
+import { TimeoutError } from 'rxjs';
+import { PAGINATION_CONSTANTS } from '@/constants/pagination.constant';
 @Injectable()
 export class UsersService {
   constructor(
@@ -51,8 +58,61 @@ export class UsersService {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  findAll() {
-    return this.userModel.find();
+  async findAll(params: PaginationParams): Promise<PaginatedResult<User>> {
+    // Validate all input parameters
+    const validation = validatePaginationParams(params);
+    if (!validation.isValid) {
+      throw new BadRequestException(validation.errors.join(', '));
+    }
+    const { page, limit, sort, fields, search } = validation.validatedData!;
+    console.log(page, limit, sort, fields, search);
+
+    // Build query
+    const query = this.userModel.find({ isDeleted: false });
+
+    // Apply search if provided
+    if (search) {
+      query.where('name', new RegExp(search, 'i'));
+    }
+
+    // Apply field selection if provided
+    if (fields) {
+      query.select(fields.split(',').join(' '));
+    }
+
+    // Apply pagination
+    const skip = (page - 1) * limit;
+    query.skip(skip).limit(limit);
+
+    // Apply sorting
+    const [sortField, sortOrder] = sort.split(':');
+    query.sort({ [sortField]: sortOrder === 'asc' ? 1 : -1 });
+
+    // Execute query with timeout
+    const result = (await Promise.race([
+      Promise.all([
+        query.exec(),
+        this.userModel.countDocuments({ isDeleted: false }),
+      ]),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new TimeoutError()),
+          PAGINATION_CONSTANTS.TIMEOUT_MS,
+        ),
+      ),
+    ])) as [User[], number];
+
+    const [results, total] = result;
+
+    return {
+      data: results,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findAllWithDeleted() {

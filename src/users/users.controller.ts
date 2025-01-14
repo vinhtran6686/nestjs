@@ -8,10 +8,15 @@ import {
   Delete,
   UsePipes,
   ValidationPipe,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { TransformResponse } from '@/shared/decorators/transform.decorator';
+import { RESPONSE_TYPES } from '@/constants/message/transform.constant';
+import { PaginationParams } from '@/shared/interfaces/pagination.interface';
+import { USER_MESSAGES } from '@/constants/message/user.constant';
 
 @Controller('users')
 @UsePipes(
@@ -30,8 +35,13 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @TransformResponse({
+    responseType: RESPONSE_TYPES.PAGINATED,
+    message: USER_MESSAGES.LIST.FETCHED,
+  })
+  findAll(@Query() params: PaginationParams) {
+    console.log(params);
+    return this.usersService.findAll(params);
   }
 
   @Get(':id')
