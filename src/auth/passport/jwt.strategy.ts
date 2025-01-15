@@ -22,3 +22,4 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     };
   }
 }
+// this strategy is used to validate the jwt token (when the request is made to the protected route)

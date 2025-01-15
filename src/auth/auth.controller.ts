@@ -6,18 +6,20 @@ import {
   UseGuards,
   Body,
   Query,
+  Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '../shared/decorators/auth.decorator';
 import { AUTH_MESSAGES } from '@/constants/message/auth.constant';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { UsersService } from '@/users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { TransformResponse } from '@/shared/decorators/transform.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -28,9 +30,12 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
+  @TransformResponse({
+    message: AUTH_MESSAGES.SUCCESS.LOGGED_IN,
+  })
   @Public()
-  handleLogin(@Req() req: any) {
-    return this.authService.login(req.user);
+  handleLogin(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    return this.authService.login(req.user, res);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -39,10 +44,20 @@ export class AuthController {
     return req.user;
   }
 
+  @Get('account')
+  @UseGuards(JwtAuthGuard)
+  getAccount(@Req() req: any) {
+    return this.authService.getAccount(req.user);
+  }
+
   @Post('refresh')
   @Public()
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshTokens(refreshTokenDto.refreshToken);
+  async refresh(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    const refreshToken = req.cookies['refresh_token'];
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+    return this.authService.refreshTokens(refreshToken, res);
   }
 
   @Post('logout')

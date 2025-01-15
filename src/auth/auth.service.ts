@@ -14,6 +14,7 @@ import { MailService } from './mail/mail.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import ms from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -39,8 +40,45 @@ export class AuthService {
     return user;
   }
 
-  async login(user: IUser) {
-    return this.generateTokens(user);
+  async login(user: IUser, res: any) {
+    const tokens = await this.generateTokens(user);
+
+    // set cookie
+    res.cookie('refresh_token', tokens.refresh_token, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'strict',
+      maxAge:
+        ms(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN')) / 1000,
+      path: '/api/auth/refresh',
+    });
+
+    return {
+      ...tokens,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    };
+  }
+
+  async getAccount(user: IUser): Promise<Partial<IUser>> {
+    // get account from DB
+    const currentUser = await this.usersService.findOne(user._id.toString());
+    if (!currentUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // return the necessary fields inheriting from IUser
+    return {
+      _id: currentUser._id,
+      name: currentUser.name,
+      email: currentUser.email,
+      role: currentUser.role,
+      phone: currentUser.phone,
+      company: currentUser.company,
+    };
   }
 
   private async generateTokens(user: IUser): Promise<TokensDto> {
@@ -69,7 +107,8 @@ export class AuthService {
     };
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_ACCESS_TOKEN'),
-      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN'),
+      expiresIn:
+        ms(this.configService.get<string>('JWT_ACCESS_EXPIRES_IN')) / 1000,
     });
   }
 
@@ -80,11 +119,12 @@ export class AuthService {
     };
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_REFRESH_TOKEN'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
+      expiresIn:
+        ms(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN')) / 1000,
     });
   }
 
-  async refreshTokens(refreshToken: string) {
+  async refreshTokens(refreshToken: string, res: any) {
     try {
       // verify refresh token
       const payload = await this.jwtService.verifyAsync(refreshToken, {
@@ -97,7 +137,19 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return this.generateTokens(user);
+      // generate new tokens
+      const tokens = await this.generateTokens(user);
+
+      // set cookie
+      res.cookie('refresh_token', tokens.refresh_token, {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        sameSite: 'strict',
+        maxAge:
+          ms(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN')) / 1000,
+        path: '/api/auth/refresh',
+      });
+      return tokens;
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }

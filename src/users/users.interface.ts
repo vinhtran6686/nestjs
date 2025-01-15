@@ -20,4 +20,8 @@ export interface IUser {
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   isPasswordChanged?: boolean;
+  company?: {
+    _id: string | ObjectId;
+    name: string;
+  };
 }

@@ -5,6 +5,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { TransformInterceptor } from './shared/interceptors/transform/transform.interceptor';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -32,20 +34,37 @@ async function bootstrap() {
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('ejs');
 
-  // config cors
-  app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  app.use(cookieParser(configService.get('COOKIE_SECRET')));
+
+  // Định nghĩa CORS options
+  const corsOptions: CorsOptions = {
+    origin: true, // Cho phép tất cả origins
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    credentials: true,
     allowedHeaders: [
       'Origin',
-      'Content-Type',
-      'Authorization',
-      'Accept',
       'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-CSRF-Token',
+      'X-Auth-Token',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials',
     ],
-    exposedHeaders: ['Content-Range', 'X-Total-Count'],
-    credentials: false,
-  });
+    exposedHeaders: [
+      'Content-Range',
+      'X-Total-Count',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials',
+    ],
+  };
+
+  // Enable CORS với options đã định nghĩa
+  app.enableCors(corsOptions);
 
   await app.listen(port);
 }
