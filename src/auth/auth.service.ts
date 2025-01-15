@@ -104,6 +104,7 @@ export class AuthService {
       _id: user._id,
       email: user.email,
       role: user.role,
+      name: user.name,
     };
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_ACCESS_TOKEN'),
