@@ -2,7 +2,12 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  InternalServerErrorException,
+  Inject,
+  CACHE_MANAGER,
+  Logger,
 } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { IUser } from '@/users/users.interface';
@@ -18,7 +23,10 @@ import ms from 'ms';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -61,6 +69,84 @@ export class AuthService {
         email: user.email,
       },
     };
+  }
+
+  async logout(userId: string, accessToken: string, res: any): Promise<void> {
+    try {
+      // 1. Get refresh token from DB
+      const user = await this.usersService.findOne(userId);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+      const refreshToken = user?.refreshToken;
+
+      // 2. Remove refresh token from DB
+      await this.usersService.update(userId, {
+        refreshToken: null,
+        lastLogin: new Date(),
+      });
+
+      // 3. Remove refresh token cookie
+      res.cookie('refresh_token', '', {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        expires: new Date(0),
+        path: '/api/auth/refresh',
+        sameSite: 'strict',
+      });
+
+      // 4. Add access token and refresh token to blacklist
+      await Promise.all([
+        this.addToTokenBlacklist(accessToken, 'access'),
+        refreshToken && this.addToTokenBlacklist(refreshToken, 'refresh'),
+      ]);
+    } catch (error) {
+      throw new InternalServerErrorException('Logout failed');
+    }
+  }
+
+  private async addToTokenBlacklist(
+    token: string,
+    type: 'access' | 'refresh',
+  ): Promise<void> {
+    try {
+      if (!token) return;
+
+      // Decode token to get expiration time
+      const decoded = this.jwtService.decode(token);
+      if (!decoded || !decoded['exp']) {
+        return;
+      }
+
+      // Calculate remaining time of the token
+      const ttl = decoded['exp'] - Math.floor(Date.now() / 1000);
+
+      if (ttl > 0) {
+        // Add prefix to distinguish token type
+        const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
+        await this.cacheManager.set(`${prefix}${token}`, 'true', ttl * 1000);
+        this.logger.debug(`Token added to blacklist: ${type}, TTL: ${ttl}s`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error adding ${type} token to blacklist:`,
+        error.stack,
+      );
+    }
+  }
+
+  // Method to check if token is in blacklist
+  async isTokenInBlacklist(
+    token: string,
+    type: 'access' | 'refresh',
+  ): Promise<boolean> {
+    console.log('token', token);
+    console.log('type', type);
+    const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
+    console.log('prefix', prefix);
+    const result = await this.cacheManager.get(`${prefix}${token}`);
+    console.log('result', result);
+    return result === 'true';
   }
 
   async getAccount(user: IUser): Promise<Partial<IUser>> {
