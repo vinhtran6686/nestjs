@@ -132,6 +132,7 @@ export class AuthService {
         `Error adding ${type} token to blacklist:`,
         error.stack,
       );
+      throw new InternalServerErrorException('Error blacklisting token');
     }
   }
 
