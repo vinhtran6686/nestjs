@@ -8,6 +8,7 @@ import {
   Query,
   Res,
   UnauthorizedException,
+  Headers,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
@@ -57,17 +58,31 @@ export class AuthController {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token is required');
     }
+
+    // check if token is in blacklist
+    const isBlacklisted = await this.authService.isTokenInBlacklist(
+      refreshToken,
+      'refresh',
+    );
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Token has been revoked');
+    }
     return this.authService.refreshTokens(refreshToken, res);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: any) {
-    // Clear refresh token in DB
-    await this.usersService.update(req.user._id, {
-      refreshToken: null,
-      lastLogin: new Date(),
-    });
+  async logout(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+    @Headers('Authorization') authorization: string,
+  ) {
+    const userId = req.user._id;
+    console.log('AuthController:', authorization);
+    const accessToken = authorization.split(' ')[1];
+    console.log('accessToken', accessToken);
+    console.log('userId', userId);
+    await this.authService.logout(userId, accessToken, res);
     return { message: AUTH_MESSAGES.SUCCESS.LOGGED_OUT };
   }
 
