@@ -18,7 +18,7 @@ import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { getMailConfig } from '@/config/mailer.config';
 import { SharedModule } from '@/shared/modules/shared.module';
 import { TokenBlacklistGuard } from './token-blacklist.guard';
-import { RedisOptions, redisStore } from 'cache-manager-redis-store';
+import { RedisService } from '@/shared/services/redis.service';
 
 @Module({
   providers: [
@@ -27,6 +27,7 @@ import { RedisOptions, redisStore } from 'cache-manager-redis-store';
     JwtStrategy,
     MailService,
     TokenBlacklistGuard,
+    RedisService,
   ],
   imports: [
     UsersModule,
@@ -73,35 +74,14 @@ import { RedisOptions, redisStore } from 'cache-manager-redis-store';
       inject: [ConfigService],
     }),
     SharedModule,
-    CacheModule.registerAsync<RedisOptions>({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        const config = {
-          store: redisStore,
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
-          ttl: configService.get('REDIS_TTL'),
-          retryStrategy: (times: number) => {
-            // Retry connection up to 5 times
-            if (times >= 5) {
-              throw new Error('Redis connection failed after 5 attempts');
-            }
-            return Math.min(times * 100, 3000);
-          },
-          onClientReady: (client) => {
-            client.on('error', (err) =>
-              console.error('Redis Client Error:', err),
-            );
-            client.on('connect', () => console.log('Redis Client Connected'));
-          },
-        };
-
-        return config;
-      },
-      inject: [ConfigService],
-    }),
   ],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, MailService, TokenBlacklistGuard],
+  exports: [
+    AuthService,
+    JwtModule,
+    MailService,
+    TokenBlacklistGuard,
+    RedisService,
+  ],
 })
 export class AuthModule {}
