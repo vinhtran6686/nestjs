@@ -65,7 +65,7 @@ export class AuthController {
       'refresh',
     );
     if (isBlacklisted) {
-      throw new UnauthorizedException('Token has been revoked');
+      throw new UnauthorizedException('Token has been revoked2');
     }
     return this.authService.refreshTokens(refreshToken, res);
   }
@@ -117,5 +117,14 @@ export class AuthController {
   @Public()
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Get('blacklist')
+  @Public()
+  async getBlacklist(@Query('type') type: 'access' | 'refresh') {
+    const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
+    console.log('prefix', prefix);
+    const keys = await this.authService.getBlacklistedTokens(prefix);
+    return { blacklist: keys };
   }
 }

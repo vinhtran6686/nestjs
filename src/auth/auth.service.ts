@@ -141,12 +141,8 @@ export class AuthService {
     token: string,
     type: 'access' | 'refresh',
   ): Promise<boolean> {
-    console.log('token', token);
-    console.log('type', type);
     const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
-    console.log('prefix', prefix);
     const result = await this.cacheManager.get(`${prefix}${token}`);
-    console.log('result', result);
     return result === 'true';
   }
 
@@ -408,5 +404,10 @@ export class AuthService {
       secret: this.configService.get<string>('JWT_RESET_SECRET'),
       expiresIn: '1h',
     });
+  }
+
+  async getBlacklistedTokens(prefix: string): Promise<string[]> {
+    const cacheKeys = await this.cacheManager.store.keys?.(`${prefix}*`);
+    return cacheKeys || [];
   }
 }

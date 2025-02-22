@@ -16,7 +16,7 @@ export class TokenBlacklistGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const accessToken = this.extractTokenFromHeader(request);
-    console.log('TokenBlacklistGuard accessToken', accessToken);
+    console.log('accessToken', accessToken);
     if (!accessToken) {
       return true;
     }
@@ -26,7 +26,8 @@ export class TokenBlacklistGuard implements CanActivate {
       accessToken,
       'access',
     );
-    console.log('TokenBlacklistGuard isBlacklisted', isBlacklisted);
+    console.log('isBlacklisted', isBlacklisted);
+
     if (isBlacklisted) {
       throw new UnauthorizedException('Token has been revoked');
     }

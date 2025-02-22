@@ -30,8 +30,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     // Check if the token is blacklisted
-    const isBlacklisted = await this.tokenBlacklistGuard.canActivate(context);
-    if (isBlacklisted) {
+    const isTokenValid = await this.tokenBlacklistGuard.canActivate(context);
+    console.log('isTokenValid', isTokenValid);
+    if (!isTokenValid) {
       throw new UnauthorizedException('Token has been revoked');
     }
 

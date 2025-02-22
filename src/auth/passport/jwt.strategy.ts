@@ -14,6 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    console.log('payload', payload);
     // payload contains _id, email, role, name (the fields is defined in the payload when generate access token)
     return {
       _id: payload._id,
