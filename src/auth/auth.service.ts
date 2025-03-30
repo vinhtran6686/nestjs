@@ -4,10 +4,10 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Inject,
-  CACHE_MANAGER,
+  // CACHE_MANAGER,
   Logger,
 } from '@nestjs/common';
-import { Cache } from 'cache-manager';
+// import { Cache } from 'cache-manager';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { IUser } from '@/users/users.interface';
@@ -26,7 +26,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    // @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -124,7 +124,7 @@ export class AuthService {
       if (ttl > 0) {
         // Add prefix to distinguish token type
         const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
-        await this.cacheManager.set(`${prefix}${token}`, 'true', ttl * 1000);
+        // await this.cacheManager.set(`${prefix}${token}`, 'true', ttl * 1000);
         this.logger.debug(`Token added to blacklist: ${type}, TTL: ${ttl}s`);
       }
     } catch (error) {
@@ -142,8 +142,8 @@ export class AuthService {
     type: 'access' | 'refresh',
   ): Promise<boolean> {
     const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
-    const result = await this.cacheManager.get(`${prefix}${token}`);
-    return result === 'true';
+    // const result = await this.cacheManager.get(`${prefix}${token}`);
+    return false;
   }
 
   async getAccount(user: IUser): Promise<Partial<IUser>> {
@@ -406,8 +406,8 @@ export class AuthService {
     });
   }
 
-  async getBlacklistedTokens(prefix: string): Promise<string[]> {
-    const cacheKeys = await this.cacheManager.store.keys?.(`${prefix}*`);
-    return cacheKeys || [];
-  }
+  // async getBlacklistedTokens(prefix: string): Promise<string[]> {
+  //   const cacheKeys = await this.cacheManager.store.keys?.(`${prefix}*`);
+  //   return cacheKeys || [];
+  // }
 }

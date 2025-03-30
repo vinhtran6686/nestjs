@@ -1,12 +1,11 @@
-import { Module, CacheModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { HealthController } from './health.controller';
-import { RedisHealthIndicator } from './indicators/redis.health';
 import { SharedModule } from '@/shared/modules/shared.module';
 
 @Module({
-  imports: [TerminusModule, SharedModule, CacheModule.register()],
+  imports: [TerminusModule, SharedModule],
   controllers: [HealthController],
-  providers: [RedisHealthIndicator],
+  providers: [],
 })
 export class HealthModule {}

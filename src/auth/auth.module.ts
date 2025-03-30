@@ -18,7 +18,6 @@ import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { getMailConfig } from '@/config/mailer.config';
 import { SharedModule } from '@/shared/modules/shared.module';
 import { TokenBlacklistGuard } from './token-blacklist.guard';
-import { RedisService } from '@/shared/services/redis.service';
 
 @Module({
   providers: [
@@ -27,7 +26,6 @@ import { RedisService } from '@/shared/services/redis.service';
     JwtStrategy,
     MailService,
     TokenBlacklistGuard,
-    RedisService,
   ],
   imports: [
     UsersModule,
@@ -35,12 +33,17 @@ import { RedisService } from '@/shared/services/redis.service';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: jwtConstants(configService).accessToken.secret,
-        signOptions: {
-          expiresIn: ms(jwtConstants(configService).accessToken.expiresIn),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const accessTokenExpiresIn = configService.get<string>('JWT_ACCESS_EXPIRES_IN', '1h');
+        const refreshTokenExpiresIn = configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
+
+        return {
+          secret: jwtConstants(configService).accessToken.secret,
+          signOptions: {
+            expiresIn: ms(accessTokenExpiresIn),
+          },
+        };
+      },
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -81,7 +84,6 @@ import { RedisService } from '@/shared/services/redis.service';
     JwtModule,
     MailService,
     TokenBlacklistGuard,
-    RedisService,
   ],
 })
 export class AuthModule {}

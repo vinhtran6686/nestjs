@@ -1,6 +1,7 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AuthService } from './auth/auth.service';
+import { Public } from './shared/decorators/auth.decorator';
 
 @Controller()
 export class AppController {
@@ -9,4 +10,11 @@ export class AppController {
     private readonly appService: AppService,
     private readonly authService: AuthService,
   ) {}
+
+  // test api 
+  @Get('test')
+  @Public()
+  test() {
+    return this.appService.getHello();
+  }
 }

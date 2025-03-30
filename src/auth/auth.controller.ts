@@ -35,7 +35,7 @@ export class AuthController {
     message: AUTH_MESSAGES.SUCCESS.LOGGED_IN,
   })
   @Public()
-  handleLogin(@Req() req: any, @Res({ passthrough: true }) res: any) {
+  handleLogin(@Req() req: any, @Res({ passthrough: true }) res: any) { 
     return this.authService.login(req.user, res);
   }
 
@@ -122,9 +122,9 @@ export class AuthController {
   @Get('blacklist')
   @Public()
   async getBlacklist(@Query('type') type: 'access' | 'refresh') {
-    const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
-    console.log('prefix', prefix);
-    const keys = await this.authService.getBlacklistedTokens(prefix);
-    return { blacklist: keys };
+    // const prefix = type === 'access' ? 'bl_acc_' : 'bl_ref_';
+    // console.log('prefix', prefix);
+    // const keys = await this.authService.getBlacklistedTokens(prefix);
+    return { blacklist: [] };
   }
 }
